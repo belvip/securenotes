@@ -7,7 +7,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -17,44 +16,37 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
-/**
- * This class configures the security settings for the application.
- * It defines the security filter chain and customizes the HTTP security features.
- */
 public class SecurityConfig {
 
-    /**
-     * Configures the default security filter chain.
-     *
-     * @param http the {@link HttpSecurity} object used to customize security settings
-     * @return the configured {@link SecurityFilterChain}
-     * @throws Exception if an error occurs while building the security filter chain
-     */
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        // Configures authorization rules to ensure all incoming requests are authenticated
-        http.authorizeHttpRequests((requests)
-                -> requests.anyRequest().authenticated());
-
-        // Disables Cross-Site Request Forgery (CSRF) protection.
-        // This is often used in stateless applications or APIs where CSRF protection is not needed.
+        http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
         http.csrf(AbstractHttpConfigurer::disable);
-
-        // Enables basic HTTP authentication (username and password in the request header).
         http.httpBasic(withDefaults());
-
-        // Optionally, you can enable form-based login by uncommenting the line below:
-        // http.formLogin(withDefaults());
-
-        // Builds and returns the configured SecurityFilterChain instance
         return http.build();
     }
 
     @Bean
     public UserDetailsService userDetailsService(DataSource dataSource) {
-        // Create an in-memory user details manager
-        // InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
         JdbcUserDetailsManager manager = new JdbcUserDetailsManager(dataSource);
+
+        // Override the default SQL queries to match your schema
+        manager.setUsersByUsernameQuery(
+                "SELECT username, password, enabled, account_non_expired, account_non_locked, credentials_non_expired " +
+                        "FROM users WHERE username = ?"
+        );
+        manager.setCreateUserSql(
+                "INSERT INTO users (username, password, enabled, account_non_expired, account_non_locked, credentials_non_expired) " +
+                        "VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        manager.setUpdateUserSql(
+                "UPDATE users SET password = ?, enabled = ?, account_non_expired = ?, account_non_locked = ?, credentials_non_expired = ? " +
+                        "WHERE username = ?"
+        );
+        manager.setDeleteUserSql("DELETE FROM users WHERE username = ?");
+        manager.setCreateAuthoritySql("INSERT INTO authorities (username, authority) VALUES (?, ?)");
+        manager.setDeleteUserAuthoritiesSql("DELETE FROM authorities WHERE username = ?");
+        manager.setAuthoritiesByUsernameQuery("SELECT username, authority FROM authorities WHERE username = ?");
 
         // Check if the "user1" already exists, if not, create it
         if (!manager.userExists("user1")) {
@@ -62,6 +54,10 @@ public class SecurityConfig {
                     User.withUsername("user1")               // Define username
                             .password("{noop}password1")    // Set password (noop means no encryption)
                             .roles("USER")                   // Assign "USER" role
+                            .accountExpired(false)           // Set account_non_expired to false
+                            .accountLocked(false)            // Set account_non_locked to false
+                            .credentialsExpired(false)       // Set credentials_non_expired to false
+                            .disabled(false)                 // Set enabled to true
                             .build()                         // Build the user details
             );
         }
@@ -72,12 +68,14 @@ public class SecurityConfig {
                     User.withUsername("admin")              // Define username
                             .password("{noop}adminPass")   // Set password (noop means no encryption)
                             .roles("ADMIN")                  // Assign "ADMIN" role
+                            .accountExpired(false)           // Set account_non_expired to false
+                            .accountLocked(false)            // Set account_non_locked to false
+                            .credentialsExpired(false)       // Set credentials_non_expired to false
+                            .disabled(false)                 // Set enabled to true
                             .build()                         // Build the user details
             );
         }
 
-        // Return the configured user details service manager
         return manager;
     }
-
 }
