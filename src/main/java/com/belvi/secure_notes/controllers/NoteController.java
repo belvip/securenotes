@@ -1,4 +1,4 @@
-package com.belvi.secure_notes.controller;
+package com.belvi.secure_notes.controllers;
 
 import com.belvi.secure_notes.models.Note;
 import com.belvi.secure_notes.services.NoteService;
