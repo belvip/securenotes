@@ -5,6 +5,9 @@ import com.belvi.secure_notes.models.Role;
 import com.belvi.secure_notes.models.User;
 import com.belvi.secure_notes.repositories.RoleRepository;
 import com.belvi.secure_notes.repositories.UserRepository;
+import com.belvi.secure_notes.security.jwt.AuthEntryPointJwt;
+import com.belvi.secure_notes.security.jwt.AuthTokenFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +20,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import java.time.LocalDate;
@@ -29,6 +33,13 @@ import static org.springframework.security.config.Customizer.withDefaults;
         securedEnabled = true,
         jsr250Enabled = true)
 public class SecurityConfig {
+    @Autowired
+    private AuthEntryPointJwt unauthorizedHandler;
+
+    @Bean
+    public AuthTokenFilter authenticationJwtTokenFilter() {
+        return new AuthTokenFilter();
+    }
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // Configure CSRF protection for the application
@@ -50,8 +61,13 @@ public class SecurityConfig {
                 -> requests
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/csrf-token").permitAll()
+                .requestMatchers("/api/auth/public/**").permitAll()
                 //.requestMatchers("/public/**").permitAll()
                 .anyRequest().authenticated());
+        http.exceptionHandling(exception
+                -> exception.authenticationEntryPoint(unauthorizedHandler));
+        http.addFilterBefore(authenticationJwtTokenFilter(),
+                UsernamePasswordAuthenticationFilter.class);
         http.formLogin(withDefaults());
         http.httpBasic(withDefaults());
         return http.build();
