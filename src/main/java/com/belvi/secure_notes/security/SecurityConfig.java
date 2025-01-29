@@ -29,8 +29,20 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        // Configure CSRF protection for the application
         http.csrf(csrf ->
-                csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+                        // Customize the CSRF token repository to store the token in a cookie
+                        csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                                // Allow the CSRF token cookie to be accessible to client-side scripts (e.g., JavaScript)
+                                // This is useful for front-end frameworks that need to read the token and include it in requests
+
+                                // Exclude specific endpoints from CSRF protection
+                                .ignoringRequestMatchers("/api/auth/public/**")
+                // Endpoints matching "/api/auth/public/**" will not require a CSRF token
+                // This is typically used for public APIs, such as authentication endpoints,
+                // where the client may not have a valid session or CSRF token
+        );
+
         //http.csrf(AbstractHttpConfigurer::disable);
         http.authorizeHttpRequests((requests)
                 -> requests
