@@ -18,3 +18,6 @@ public class Note {
 }
 
 //ALTER TABLE note ALTER COLUMN content TYPE jsonb USING content::jsonb;
+
+// ALTER TABLE note ALTER COLUMN content TYPE TEXT USING content::text;
+
