@@ -12,7 +12,6 @@ public class Note {
 
     //@Lob
     @Column(columnDefinition = "TEXT")
-
     private String content;
 
     private String ownerUsername;
