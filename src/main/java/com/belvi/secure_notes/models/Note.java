@@ -16,3 +16,5 @@ public class Note {
 
     private String ownerUsername;
 }
+
+//ALTER TABLE note ALTER COLUMN content TYPE jsonb USING content::jsonb;
